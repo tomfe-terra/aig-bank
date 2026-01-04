@@ -1,0 +1,70 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+*.cover
+.hypothesis/
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+logs/
+*.log
+
+# Database (don't copy local DB to container)
+*.db
+*.db-shm
+*.db-wal
+bank.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# CI/CD
+.github/
+.gitlab-ci.yml
+
+# Environment files (should be injected at runtime)
+.env
+.env.*
+
+# Tests
+tests/
+
+# Development files
+Makefile
+
+# Type checking
+.mypy_cache/
+.ruff_cache/
+
+# Misc
+*.bak
+*.tmp
+

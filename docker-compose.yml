@@ -1,0 +1,132 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: aig-bank-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - aig-bank-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  aig-bank-api:
+    build:
+      context: ./aig-bank-api
+      dockerfile: Dockerfile
+    container_name: aig-bank-api
+    restart: unless-stopped
+    expose:
+      - "8000"
+    environment:
+      DATABASE_URL: "postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}"
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      AES_KEY: ${AES_KEY}
+      HMAC_KEY: ${HMAC_KEY}
+      CORS_ORIGINS: '["https://app.${DOMAIN}", "https://pay.${DOMAIN}"]'
+      DEBUG: ${DEBUG:-false}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      HOST: 0.0.0.0
+      PORT: 8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - aig-bank-network
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/docs').read()"]
+      interval: 120s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+  aig-ui:
+    build:
+      context: ./aig-ui
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: https://api.${DOMAIN}/api/v1
+    container_name: aig-ui
+    restart: unless-stopped
+    networks:
+      - aig-bank-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 120s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+  aig-pay:
+    build:
+      context: ./aig-pay
+      dockerfile: Dockerfile
+    container_name: aig-pay
+    restart: unless-stopped
+    environment:
+      API_ENDPOINT: https://api.${DOMAIN}
+      PORT: 3000
+      NODE_ENV: production
+    depends_on:
+      - aig-bank-api
+    networks:
+      - aig-bank-network
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/', (r) => {process.exit(r.statusCode === 200 ? 0 : 1)})"]
+      interval: 120s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+  pgweb:
+    image: sosedoff/pgweb
+    container_name: aig-bank-pgweb
+    restart: unless-stopped
+    expose:
+      - "80"
+    environment:
+      DATABASE_URL: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - aig-bank-network
+    command: pgweb --bind=0.0.0.0 --listen=80
+
+  nginx:
+    image: nginx:alpine
+    container_name: aig-bank-nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./nginx/nginx.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./nginx/includes:/etc/nginx/includes:ro
+      - ./certs:/etc/nginx/certs:ro
+    depends_on:
+      - aig-ui
+      - aig-bank-api
+      - aig-pay
+    networks:
+      - aig-bank-network
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+networks:
+  aig-bank-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+    driver: local
+

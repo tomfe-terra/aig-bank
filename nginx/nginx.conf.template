@@ -1,0 +1,78 @@
+
+server {
+    listen 80;
+    server_name app.${DOMAIN} api.${DOMAIN} pay.${DOMAIN};
+
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name app.${DOMAIN};
+
+    include /etc/nginx/includes/ssl-common.conf;
+
+    include /etc/nginx/includes/security-headers.conf;
+
+    location / {
+        proxy_pass http://aig-ui/;
+        include /etc/nginx/includes/proxy-headers.conf;
+    }
+
+    location /db-admin/ {
+        allow 172.16.0.0/12;
+        deny all;
+
+        error_page 403 = @forbidden;
+
+        rewrite ^/db-admin/(.*) /$1 break;
+        proxy_pass http://pgweb:80;
+        include /etc/nginx/includes/proxy-headers.conf;
+    }
+
+    location @forbidden {
+        default_type application/json;
+        return 403 '{"error": "Access denied", "message": "Database admin is only accessible from the internal network"}';
+    }
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name api.${DOMAIN};
+
+    include /etc/nginx/includes/ssl-common.conf;
+
+    include /etc/nginx/includes/security-headers.conf;
+
+    client_max_body_size 10M;
+
+    location / {
+        proxy_pass http://aig-bank-api:8000/;
+        include /etc/nginx/includes/proxy-headers.conf;
+        
+        proxy_connect_timeout 60s;
+        proxy_send_timeout 60s;
+        proxy_read_timeout 60s;
+    }
+}
+
+server {
+    listen 443 ssl;
+    http2 on;
+    server_name pay.${DOMAIN};
+
+    include /etc/nginx/includes/ssl-common.conf;
+
+    location / {
+        proxy_pass http://aig-pay:3000/;
+        include /etc/nginx/includes/proxy-headers.conf;
+    }
+    
+    location ~ /assets(.*) {
+        resolver 127.0.0.11 ipv6=off;
+        proxy_pass http://aig-ui$1;
+        proxy_redirect off;
+    }
+}

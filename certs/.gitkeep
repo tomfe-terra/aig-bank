@@ -1,0 +1,13 @@
+# This directory should contain SSL certificates for HTTPS
+# 
+# Required files:
+# - cert.pem (or fullchain.pem)
+# - key.pem (or privkey.pem)
+#
+# For production:
+#   Use a wildcard certificate for *.yourdomain.com
+#   Or a certificate with SANs for app.yourdomain.com, api.yourdomain.com, pay.yourdomain.com
+#
+# For development:
+#   Generate a self-signed certificate (see CERTS.md for instructions)
+

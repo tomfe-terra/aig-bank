@@ -1,0 +1,124 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "aig-bank-api"
+version = "0.1.0"
+description = "A FastAPI-based banking API"
+readme = "README.md"
+requires-python = ">=3.14"
+authors = [{ name = "Your Team" }]
+
+
+dependencies = [
+  "fastapi",
+  "fastapi-security",
+  "uvicorn[standard]",
+  "pydantic>=2",
+  "pydantic-settings",
+  "pydantic[email]",
+  "sqlalchemy>=2",
+  "python-jose[cryptography]",
+  "greenlet",
+  "passlib[bcrypt]",
+  "python-multipart",
+  "pyotp",
+  "asyncpg",
+  "pillow>=10.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+  "aiosqlite",
+  "pytest",
+  "pytest-asyncio",
+  "pytest-cov",
+  "pytest-xdist",
+  "mypy",
+  "ruff",
+  "black",
+  "types-requests",
+  "types-python-dateutil",
+  "pytest-order",
+  "httpx"
+]
+
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = [
+    "--tb=short",
+    "--strict-markers",
+]
+markers = [
+    "unit: Unit tests",
+    "e2e: End-to-end tests",
+    "integration: Integration tests",
+    "fast: Fast running tests",
+    "slow: Slow running tests",
+]
+asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["app"]
+omit = [
+    "*/tests/*",
+    "*/__pycache__/*",
+    "*/venv/*",
+]
+
+[tool.ruff]
+line-length = 140
+target-version = "py314"
+src = ["app"]
+exclude = [".venv", "venv", "build", "dist", "tests"]
+
+[tool.ruff.lint]
+# Broad, high-signal rule set:
+# E/W = pycodestyle, F = pyflakes, I = isort, B = bugbear, UP = pyupgrade,
+# SIM = simplify, PT = pytest style, D = docstrings, PERF = perflint,
+# DTZ = datetime TZ, ERA = eradicate commented code, RUF = Ruff-specific.
+select = ["E", "W", "F", "I", "B", "UP", "SIM", "PT", "D", "PERF", "DTZ", "ERA", "RUF"]
+
+# Trim a few noisy/overlapping docstring rules (Google-style conflict pair).
+ignore = ["D203", "D213", "B008"]
+
+# Don’t force strict docstrings / security rules in tests.
+per-file-ignores = { "tests/**" = ["D", "S101"] }
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"  
+
+[tool.ruff.lint.isort]
+known-first-party = ["app"]
+force-sort-within-sections = true
+combine-as-imports = true
+
+[tool.black]
+line-length = 140
+target-version = ["py314"]            # keep aligned with Ruff
+include = '\.pyi?$'
+# Be explicit about things editors/pre-commit might pass directly to Black.
+extend-exclude = """
+/(
+  \\.venv
+ | venv
+ | build
+ | dist
+ | tests
+)/
+"""
+# For tools that pass filenames directly (pre-commit, some editors), this is always enforced:
+force-exclude = """
+/(
+  \\.venv
+ | venv
+ | build
+ | dist
+ | tests
+)/
+"""
