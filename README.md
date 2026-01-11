@@ -11,6 +11,8 @@ A full-stack banking application with a modern web interface and payment process
 - **postgres** - Database
 - **pgweb** - Database viewer
 
+Api Docs: https://api.aig-bank.int.terrasec.io/docs
+
 ## Quick Start
 
 1. Copy `env.example` to `.env` and configure environment variables
