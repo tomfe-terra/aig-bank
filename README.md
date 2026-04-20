@@ -11,7 +11,7 @@ A full-stack banking application with a modern web interface and payment process
 - **postgres** - Database
 - **pgweb** - Database viewer
 
-Api Docs: https://api.aig-bank.int.terrasec.io/docs
+Api Docs: [https://api.aig-bank.int.terrasec.io/docs](https://ubiquitous-broccoli-8ezq9qk.pages.github.io/docs/aig-bank/assets/endpoints/)
 
 ## Quick Start
 
