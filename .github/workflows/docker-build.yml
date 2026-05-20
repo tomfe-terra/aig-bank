@@ -1,6 +1,13 @@
 name: Docker Build
 
 on:
+  pull_request:
+    paths:
+      - '.github/workflows/docker-build.yml'
+      - 'helm/aig-bank/**'
+      - 'aig-bank-api/**'
+      - 'aig-ui/**'
+      - 'aig-pay/**'
   release:
     types:
       - published
@@ -10,6 +17,10 @@ on:
         description: Optional image tag override
         required: false
         type: string
+      chart_version:
+        description: Optional Helm chart version override. Defaults to Chart.yaml version, or release tag without a leading v.
+        required: false
+        type: string
 
 jobs:
   prepare:
@@ -17,6 +28,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.vars.outputs.tag }}
+      chart_version: ${{ steps.chart-version.outputs.version }}
     steps:
       - name: Resolve image tag
         id: vars
@@ -30,6 +42,84 @@ jobs:
           fi
 
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Resolve chart version
+        id: chart-version
+        shell: bash
+        env:
+          CHART_VERSION_INPUT: ${{ inputs.chart_version }}
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          if [[ -n "$CHART_VERSION_INPUT" ]]; then
+            VERSION="$CHART_VERSION_INPUT"
+          elif [[ "${{ github.event_name }}" == "release" && -n "$RELEASE_TAG" ]]; then
+            VERSION="${RELEASE_TAG#v}"
+          else
+            VERSION="$(awk '/^version:/ { print $2; exit }' ./helm/aig-bank/Chart.yaml)"
+          fi
+
+          if [[ -z "$VERSION" || "$VERSION" == "null" ]]; then
+            echo "❌ Failed to resolve chart version."
+            exit 1
+          fi
+
+          if [[ ! "$VERSION" =~ ^[0-9A-Za-z.+-]+$ ]]; then
+            echo "❌ Invalid chart version: $VERSION"
+            exit 1
+          fi
+
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+  test-chart:
+    name: Test Helm Chart
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Build chart dependencies
+        run: helm dependency build ./helm/aig-bank
+
+      - name: Lint chart
+        run: |
+          helm lint ./helm/aig-bank --strict \
+            --set-string ingress.enabled=false \
+            --set-string fullnameOverride=aigbank \
+            --set-string postgresql.auth.password=test-password \
+            --set-string api.env.jwtSecretKey=test-jwt-secret \
+            --set-string api.env.aesKey=test-aes-key \
+            --set-string api.env.hmacKey=test-hmac-key \
+            --set-string api.image.repository=test/aig-bank-api \
+            --set-string api.image.tag=test \
+            --set-string ui.image.repository=test/aig-ui \
+            --set-string ui.image.tag=test \
+            --set-string pay.image.repository=test/aig-pay \
+            --set-string pay.image.tag=test \
+            --set-string pay.env.apiEndpoint=http://aigbank-api:8000
+
+      - name: Render chart
+        run: |
+          helm template test-release ./helm/aig-bank \
+            --set-string ingress.enabled=false \
+            --set-string fullnameOverride=aigbank \
+            --set-string postgresql.auth.password=test-password \
+            --set-string api.env.jwtSecretKey=test-jwt-secret \
+            --set-string api.env.aesKey=test-aes-key \
+            --set-string api.env.hmacKey=test-hmac-key \
+            --set-string api.image.repository=test/aig-bank-api \
+            --set-string api.image.tag=test \
+            --set-string ui.image.repository=test/aig-ui \
+            --set-string ui.image.tag=test \
+            --set-string pay.image.repository=test/aig-pay \
+            --set-string pay.image.tag=test \
+            --set-string pay.env.apiEndpoint=http://aigbank-api:8000 \
+            --debug > /dev/null
 
   build-amd64:
     name: Build and Push (${{ matrix.service }}, linux/amd64)
@@ -98,3 +188,113 @@ jobs:
           cache-to: type=gha,mode=max,scope=${{ matrix.service }}-docker-amd64
           provenance: false
           sbom: false
+
+  publish-chart:
+    name: Publish Helm Chart
+    needs:
+      - prepare
+      - test-chart
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION }}
+      ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
+      HELM_ECR_REPOSITORY: ${{ vars.ECR_HELM_REPOSITORY || format('{0}-helm-charts', vars.ECR_REPOSITORY_PREFIX) }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Helm
+        uses: azure/setup-helm@v4
+
+      - name: Build chart dependencies
+        run: helm dependency build ./helm/aig-bank
+
+      - name: Package chart
+        id: package-chart
+        shell: bash
+        env:
+          CHART_VERSION: ${{ needs.prepare.outputs.chart_version }}
+        run: |
+          CHART_NAME="$(awk '/^name:/ { print $2; exit }' ./helm/aig-bank/Chart.yaml)"
+          helm package ./helm/aig-bank \
+            --version "$CHART_VERSION" \
+            --destination ./dist
+
+          PACKAGE_PATH="./dist/${CHART_NAME}-${CHART_VERSION}.tgz"
+          if [[ ! -f "$PACKAGE_PATH" ]]; then
+            echo "❌ Expected chart package not found: $PACKAGE_PATH"
+            exit 1
+          fi
+
+          echo "chart_name=$CHART_NAME" >> "$GITHUB_OUTPUT"
+          echo "package_path=$PACKAGE_PATH" >> "$GITHUB_OUTPUT"
+          echo "repository_name=${HELM_ECR_REPOSITORY}/${CHART_NAME}" >> "$GITHUB_OUTPUT"
+
+      - name: Validate AWS configuration
+        shell: bash
+        run: |
+          if [[ -z "${AWS_REGION}" ]]; then
+            echo "❌ AWS_REGION is not set."
+            exit 1
+          fi
+
+          if [[ -z "${ECR_REGISTRY}" ]]; then
+            echo "❌ ECR_REGISTRY is not set."
+            exit 1
+          fi
+
+          if [[ -z "${HELM_ECR_REPOSITORY}" ]]; then
+            echo "❌ HELM_ECR_REPOSITORY is not set."
+            exit 1
+          fi
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR for Helm
+        shell: bash
+        run: |
+          aws ecr get-login-password --region "${AWS_REGION}" | \
+            helm registry login --username AWS --password-stdin "${ECR_REGISTRY}"
+
+      - name: Ensure Helm ECR repository exists
+        shell: bash
+        env:
+          REPOSITORY_NAME: ${{ steps.package-chart.outputs.repository_name }}
+        run: |
+          REGISTRY_ID="${ECR_REGISTRY%%.*}"
+          if ! aws ecr describe-repositories \
+            --registry-id "${REGISTRY_ID}" \
+            --repository-names "${REPOSITORY_NAME}" \
+            --region "${AWS_REGION}" > /dev/null 2>&1; then
+            echo "❌ ECR repository does not exist: ${REPOSITORY_NAME}"
+            echo "Pre-create it before publishing the chart."
+            exit 1
+          fi
+
+      - name: Push chart to ECR
+        shell: bash
+        run: |
+          helm push "${{ steps.package-chart.outputs.package_path }}" \
+            "oci://${ECR_REGISTRY}/${HELM_ECR_REPOSITORY}"
+
+      - name: Summary
+        if: always()
+        shell: bash
+        run: |
+          {
+            echo "## Docker And Helm Publish"
+            echo ""
+            echo "| Field | Value |"
+            echo "|---|---|"
+            echo "| Image tag | \`${{ needs.prepare.outputs.tag }}\` |"
+            echo "| Chart version | \`${{ needs.prepare.outputs.chart_version }}\` |"
+            echo "| Helm registry | \`${ECR_REGISTRY}\` |"
+            echo "| Helm repository | \`${{ steps.package-chart.outputs.repository_name }}\` |"
+          } >> "$GITHUB_STEP_SUMMARY"
