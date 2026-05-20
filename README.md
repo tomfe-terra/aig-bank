@@ -28,3 +28,34 @@ Api Docs: https://api.aig-bank.int.terrasec.io/docs
 - API: `https://api.{DOMAIN}`
 - API Docs: `https://api.{DOMAIN}/docs`
 
+## Docker Images
+
+GitHub Actions workflow: `.github/workflows/docker-build.yml`
+
+Required repository variables:
+- `AWS_REGION`
+- `AWS_ROLE_ARN`
+- `ECR_REPOSITORY_PREFIX`
+
+The workflow builds amd64 images for:
+- `aig-bank-api`
+- `aig-ui`
+- `aig-pay`
+
+## Helm
+
+Chart location: `helm/aig-bank`
+
+The chart uses the Bitnami `postgresql` dependency chart for the database component.
+
+Example install:
+```bash
+helm upgrade --install aig-bank ./helm/aig-bank \
+  --set domain=bank.example.com \
+  --set api.image.repository=<api-image> \
+  --set ui.image.repository=<ui-image> \
+  --set pay.image.repository=<pay-image>
+```
+
+`aig-ui` no longer requires a deployment-specific build arg for the API URL. If `VITE_API_BASE_URL` is not set at build time, the frontend falls back to the current browser host and swaps the `app` subdomain for `api`, using `/api/v1` as the API base path.
+

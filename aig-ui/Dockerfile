@@ -12,19 +12,6 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Build arguments for environment variables
-ARG VITE_API_BASE_URL
-ARG VITE_HOST=localhost
-ARG VITE_PORT=3000
-
-# Validate required build arguments
-RUN test -n "$VITE_API_BASE_URL" || (echo "ERROR: VITE_API_BASE_URL is required" && exit 1)
-
-# Create .env file for the build process
-RUN echo "VITE_API_BASE_URL=$VITE_API_BASE_URL" > .env && \
-    echo "VITE_HOST=$VITE_HOST" >> .env && \
-    echo "VITE_PORT=$VITE_PORT" >> .env
-
 # Build the application
 RUN npm run build
 
