@@ -254,7 +254,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ secrets.AWS_ECR_HELM_PUBLISH_ROLE_ARN || secrets.AWS_ECR_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_ECR_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR for Helm
