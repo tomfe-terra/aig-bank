@@ -129,9 +129,9 @@ jobs:
       contents: read
       id-token: write
     env:
-      AWS_REGION: ${{ vars.AWS_REGION }}
+      AWS_REGION: ${{ vars.AWS_ECR_REGION || vars.AWS_REGION || vars.AWS_DEFAULT_REGION || 'us-east-1' }}
       ECR_REPOSITORY_PREFIX: ${{ vars.ECR_REPOSITORY_PREFIX }}
-      ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
+      ECR_REGISTRY: ${{ vars.AWS_ECR_REGISTRY_ACCOUNT_NUMBER }}.dkr.ecr.${{ vars.AWS_ECR_REGION || vars.AWS_REGION || vars.AWS_DEFAULT_REGION || 'us-east-1' }}.amazonaws.com
     strategy:
       fail-fast: false
       matrix:
@@ -156,7 +156,7 @@ jobs:
         if: ${{ env.ACT != 'true' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_ECR_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR via action
@@ -199,8 +199,8 @@ jobs:
       contents: read
       id-token: write
     env:
-      AWS_REGION: ${{ vars.AWS_REGION }}
-      ECR_REGISTRY: ${{ vars.ECR_REGISTRY }}
+      AWS_REGION: ${{ vars.AWS_ECR_REGION || vars.AWS_REGION || vars.AWS_DEFAULT_REGION || 'us-east-1' }}
+      ECR_REGISTRY: ${{ vars.AWS_ECR_REGISTRY_ACCOUNT_NUMBER }}.dkr.ecr.${{ vars.AWS_ECR_REGION || vars.AWS_REGION || vars.AWS_DEFAULT_REGION || 'us-east-1' }}.amazonaws.com
       HELM_ECR_REPOSITORY: ${{ vars.ECR_HELM_REPOSITORY || format('{0}-helm-charts', vars.ECR_REPOSITORY_PREFIX) }}
     steps:
       - name: Checkout code
@@ -254,7 +254,7 @@ jobs:
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
-          role-to-assume: ${{ vars.AWS_ROLE_ARN }}
+          role-to-assume: ${{ secrets.AWS_ECR_HELM_PUBLISH_ROLE_ARN || secrets.AWS_ECR_ROLE_ARN }}
           aws-region: ${{ env.AWS_REGION }}
 
       - name: Login to Amazon ECR for Helm
