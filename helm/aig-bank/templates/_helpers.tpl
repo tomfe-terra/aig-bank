@@ -31,8 +31,8 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- printf "%s-api" (include "aig-bank.fullname" .) -}}
 {{- end -}}
 
-{{- define "aig-bank.ui.fullname" -}}
-{{- printf "%s-ui" (include "aig-bank.fullname" .) -}}
+{{- define "aig-bank.app.fullname" -}}
+{{- printf "%s-app" (include "aig-bank.fullname" .) -}}
 {{- end -}}
 
 {{- define "aig-bank.pay.fullname" -}}

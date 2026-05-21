@@ -2,10 +2,10 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "aig-bank.ui.fullname" . }}
+  name: {{ include "aig-bank.app.fullname" . }}
   labels:
     {{- include "aig-bank.labels" . | nindent 4 }}
-    app.kubernetes.io/component: ui
+    app.kubernetes.io/component: app
   {{- with .Values.ingress.annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
@@ -28,7 +28,7 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: {{ include "aig-bank.ui.fullname" . }}
+                name: {{ include "aig-bank.app.fullname" . }}
                 port:
                   number: {{ .Values.ui.service.port }}
 ---
