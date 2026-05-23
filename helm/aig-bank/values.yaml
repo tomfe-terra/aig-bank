@@ -70,8 +70,9 @@ api:
     repository: example.com/aig-bank-api
     tag: latest
     pullPolicy: IfNotPresent
+  containerPort: 8000
   service:
-    port: 8000
+    port: 80
   env:
     debug: "false"
     logLevel: INFO

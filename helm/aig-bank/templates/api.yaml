@@ -39,7 +39,7 @@ spec:
           imagePullPolicy: {{ .Values.api.image.pullPolicy }}
           ports:
             - name: http
-              containerPort: {{ .Values.api.service.port }}
+              containerPort: {{ .Values.api.containerPort }}
           env:
             - name: DATABASE_URL
               valueFrom:
@@ -79,7 +79,7 @@ spec:
             - name: HOST
               value: "0.0.0.0"
             - name: PORT
-              value: {{ .Values.api.service.port | quote }}
+              value: {{ .Values.api.containerPort | quote }}
           readinessProbe:
             httpGet:
               path: /health

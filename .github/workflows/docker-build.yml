@@ -101,7 +101,7 @@ jobs:
             --set-string ui.image.tag=test \
             --set-string pay.image.repository=test/aig-pay \
             --set-string pay.image.tag=test \
-            --set-string pay.env.apiEndpoint=http://aigbank-api:8000
+            --set-string pay.env.apiEndpoint=http://aigbank-api
 
       - name: Render chart
         run: |
@@ -118,7 +118,7 @@ jobs:
             --set-string ui.image.tag=test \
             --set-string pay.image.repository=test/aig-pay \
             --set-string pay.image.tag=test \
-            --set-string pay.env.apiEndpoint=http://aigbank-api:8000 \
+            --set-string pay.env.apiEndpoint=http://aigbank-api \
             --debug > /dev/null
 
   build-amd64:
