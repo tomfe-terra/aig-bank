@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "aig-bank.api.fullname" . }}
+  labels:
+    {{- include "aig-bank.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  ports:
+    - name: http
+      port: {{ .Values.api.service.port }}
+      targetPort: http
+  selector:
+    {{- include "aig-bank.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "aig-bank.api.fullname" . }}
+  labels:
+    {{- include "aig-bank.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+spec:
+  replicas: {{ .Values.api.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "aig-bank.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: api
+  template:
+    metadata:
+      labels:
+        {{- include "aig-bank.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: api
+    spec:
+      containers:
+        - name: api
+          image: "{{ .Values.api.image.repository }}:{{ .Values.api.image.tag }}"
+          imagePullPolicy: {{ .Values.api.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.api.containerPort }}
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "aig-bank.secretName" . }}
+                  key: DATABASE_URL
+            - name: JWT_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "aig-bank.secretName" . }}
+                  key: JWT_SECRET_KEY
+            - name: AES_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "aig-bank.secretName" . }}
+                  key: AES_KEY
+            - name: HMAC_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "aig-bank.secretName" . }}
+                  key: HMAC_KEY
+            - name: CORS_ORIGINS
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "aig-bank.configMapName" . }}
+                  key: API_CORS_ORIGINS
+            - name: DEBUG
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "aig-bank.configMapName" . }}
+                  key: API_DEBUG
+            - name: LOG_LEVEL
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "aig-bank.configMapName" . }}
+                  key: API_LOG_LEVEL
+            - name: HOST
+              value: "0.0.0.0"
+            - name: PORT
+              value: {{ .Values.api.containerPort | quote }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 90
+            periodSeconds: 20
+          {{- with .Values.api.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}

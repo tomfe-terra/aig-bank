@@ -1,0 +1,141 @@
+{{- if .Values.ingress.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "aig-bank.app.fullname" . }}
+  labels:
+    {{- include "aig-bank.labels" . | nindent 4 }}
+    app.kubernetes.io/component: app
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - secretName: {{ .Values.ingress.tls.secretName }}
+      hosts:
+        - {{ printf "app.%s" .Values.domain }}
+  {{- end }}
+  rules:
+    - host: {{ printf "app.%s" .Values.domain }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "aig-bank.app.fullname" . }}
+                port:
+                  number: {{ .Values.ui.service.port }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "aig-bank.api.fullname" . }}
+  labels:
+    {{- include "aig-bank.labels" . | nindent 4 }}
+    app.kubernetes.io/component: api
+  annotations:
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- with .Values.ingress.apiAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - secretName: {{ .Values.ingress.tls.secretName }}
+      hosts:
+        - {{ printf "api.%s" .Values.domain }}
+  {{- end }}
+  rules:
+    - host: {{ printf "api.%s" .Values.domain }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "aig-bank.api.fullname" . }}
+                port:
+                  number: {{ .Values.api.service.port }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "aig-bank.pay.fullname" . }}
+  labels:
+    {{- include "aig-bank.labels" . | nindent 4 }}
+    app.kubernetes.io/component: pay
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - secretName: {{ .Values.ingress.tls.secretName }}
+      hosts:
+        - {{ printf "pay.%s" .Values.domain }}
+  {{- end }}
+  rules:
+    - host: {{ printf "pay.%s" .Values.domain }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "aig-bank.pay.fullname" . }}
+                port:
+                  number: {{ .Values.pay.service.port }}
+{{- if and .Values.pgweb.enabled .Values.pgweb.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "aig-bank.pgweb.fullname" . }}
+  labels:
+    {{- include "aig-bank.labels" . | nindent 4 }}
+    app.kubernetes.io/component: pgweb
+  annotations:
+    {{- with .Values.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+    {{- with .Values.pgweb.ingress.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  {{- if .Values.ingress.className }}
+  ingressClassName: {{ .Values.ingress.className }}
+  {{- end }}
+  {{- if .Values.ingress.tls.enabled }}
+  tls:
+    - secretName: {{ .Values.ingress.tls.secretName }}
+      hosts:
+        - {{ printf "app.%s" .Values.domain }}
+  {{- end }}
+  rules:
+    - host: {{ printf "app.%s" .Values.domain }}
+      http:
+        paths:
+          - path: /db-admin/?(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: {{ include "aig-bank.pgweb.fullname" . }}
+                port:
+                  number: {{ .Values.pgweb.service.port }}
+{{- end }}
+{{- end }}

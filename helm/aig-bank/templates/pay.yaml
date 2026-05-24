@@ -1,0 +1,71 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "aig-bank.pay.fullname" . }}
+  labels:
+    {{- include "aig-bank.labels" . | nindent 4 }}
+    app.kubernetes.io/component: pay
+spec:
+  ports:
+    - name: http
+      port: {{ .Values.pay.service.port }}
+      targetPort: http
+  selector:
+    {{- include "aig-bank.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: pay
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "aig-bank.pay.fullname" . }}
+  labels:
+    {{- include "aig-bank.labels" . | nindent 4 }}
+    app.kubernetes.io/component: pay
+spec:
+  replicas: {{ .Values.pay.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "aig-bank.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: pay
+  template:
+    metadata:
+      labels:
+        {{- include "aig-bank.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: pay
+    spec:
+      containers:
+        - name: pay
+          image: "{{ .Values.pay.image.repository }}:{{ .Values.pay.image.tag }}"
+          imagePullPolicy: {{ .Values.pay.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.pay.service.port }}
+          env:
+            - name: API_ENDPOINT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "aig-bank.configMapName" . }}
+                  key: PAY_API_ENDPOINT
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: {{ include "aig-bank.configMapName" . }}
+                  key: PAY_PORT
+            - name: NODE_ENV
+              value: {{ .Values.pay.env.nodeEnv | quote }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          {{- with .Values.pay.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}

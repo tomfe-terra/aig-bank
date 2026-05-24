@@ -3,16 +3,10 @@ import vue from '@vitejs/plugin-vue'
 import { fileURLToPath, URL } from 'node:url'
 
 function validateEnv(env: Record<string, string>) {
-  const required = ['VITE_API_BASE_URL']
-  const missing = required.filter(key => !env[key])
-  
-  if (missing.length > 0) {
-    throw new Error(
-      `❌ Missing required environment variables in .env file:\n` +
-      missing.map(key => `   - ${key}`).join('\n')
-    )
+  if (!env.VITE_API_BASE_URL) {
+    return
   }
-  
+
   try {
     const url = new URL(env.VITE_API_BASE_URL)
     if (url.protocol !== 'http:' && url.protocol !== 'https:') {

@@ -29,7 +29,8 @@ npm run preview
 
 ## Environment Variables
 
-- `VITE_API_BASE_URL` - Backend API base URL
+- `VITE_API_BASE_URL` - Optional backend API base URL override
+- If `VITE_API_BASE_URL` is not set, the app derives the API URL from the browser location by replacing the `app` subdomain with `api` and using the `/api/v1` base path.
 
 ## Docker
 

@@ -1,0 +1,122 @@
+domain: aig-bank.example.com
+
+nameOverride: ""
+fullnameOverride: ""
+
+ingress:
+  enabled: true
+  className: nginx
+  annotations: {}
+  apiAnnotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: 10m
+  tls:
+    enabled: true
+    secretName: aig-bank-tls
+
+# PostgreSQL Configuration
+postgresql:
+  # -- Enable PostgreSQL deployment (via Bitnami Helm Chart). If you want to use an external Postgres server (or a managed one), set this to false
+  deploy: true
+
+  # -- PostgreSQL host to connect to. If postgresql.deploy is true, this will be set automatically based on the release name.
+  host: ""
+  # -- Port of the postgres server to use. Defaults to 5432.
+  port: null
+  # -- Additional database connection arguments
+  args: ""
+
+  # -- If `postgresql.deploy` is set to false, Connection string of your Postgres database used for database migrations. Use this if you want to use a different user for migrations or use connection pooling on DATABASE_URL. For large deployments, configure the database user with long timeouts as migrations might need a while to complete.
+  directUrl: ""
+
+  # -- If your database user lacks the CREATE DATABASE permission, you must create a shadow database and configure the "SHADOW_DATABASE_URL". This is often the case if you use a Cloud database. Refer to the Prisma docs for detailed instructions.
+  shadowDatabaseUrl: ""
+
+  image:
+    # -- Overwrite default repository of helm chart to point to non-paid bitnami images.
+    repository: bitnamilegacy/postgresql
+    # image: docker.io/bitnami/postgresql:17.3.0-debian-12-r1
+
+  # Authentication configuration
+  auth:
+    # -- Username to use to connect to the postgres database deployed with Langfuse. In case `postgresql.deploy` is set to `true`, the user will be created automatically.
+    username: postgres
+    # -- Password to use to connect to the postgres database deployed with Langfuse. In case `postgresql.deploy` is set to `true`, the password will be set automatically.
+    password: ""
+    # -- If you want to use an existing secret for the postgres password, set the name of the secret here. (`postgresql.auth.password` will be ignored and picked up from this secret).
+    existingSecret: ""
+    # -- The key in the existing secret that contains the password.
+    secretKeys:
+      userPasswordKey: password
+    # -- Database name to use for Langfuse.
+    database: bankdb
+    # -- Additional database connection arguments
+    args: ""
+
+  # Migration configuration
+  migration:
+    # -- Whether to run automatic migrations on startup
+    autoMigrate: true
+
+  # Subchart specific settings
+  architecture: standalone
+  primary:
+    service:
+      ports:
+        postgresql: 5432
+
+api:
+  replicaCount: 1
+  image:
+    repository: example.com/aig-bank-api
+    tag: latest
+    pullPolicy: IfNotPresent
+  containerPort: 8000
+  service:
+    port: 80
+  env:
+    debug: "false"
+    logLevel: INFO
+    corsOrigins: []
+    jwtSecretKey: change_this_jwt_secret_key_to_secure_random_value
+    aesKey: change_this_aes_key_to_secure_random_hex_64_chars
+    hmacKey: change_this_hmac_key_to_secure_random_hex_64_chars
+  resources: {}
+
+ui:
+  replicaCount: 1
+  image:
+    repository: example.com/aig-ui
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    port: 80
+  resources: {}
+
+pay:
+  replicaCount: 1
+  image:
+    repository: example.com/aig-pay
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    port: 3000
+  env:
+    apiEndpoint: ""
+    nodeEnv: production
+  resources: {}
+
+pgweb:
+  enabled: false
+  replicaCount: 1
+  image:
+    repository: sosedoff/pgweb
+    tag: latest
+    pullPolicy: IfNotPresent
+  service:
+    port: 80
+  ingress:
+    enabled: false
+    annotations:
+      nginx.ingress.kubernetes.io/use-regex: "true"
+      nginx.ingress.kubernetes.io/rewrite-target: /$1
+  resources: {}

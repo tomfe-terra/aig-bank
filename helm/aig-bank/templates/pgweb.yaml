@@ -1,0 +1,70 @@
+{{- if .Values.pgweb.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "aig-bank.pgweb.fullname" . }}
+  labels:
+    {{- include "aig-bank.labels" . | nindent 4 }}
+    app.kubernetes.io/component: pgweb
+spec:
+  ports:
+    - name: http
+      port: {{ .Values.pgweb.service.port }}
+      targetPort: http
+  selector:
+    {{- include "aig-bank.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: pgweb
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "aig-bank.pgweb.fullname" . }}
+  labels:
+    {{- include "aig-bank.labels" . | nindent 4 }}
+    app.kubernetes.io/component: pgweb
+spec:
+  replicas: {{ .Values.pgweb.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "aig-bank.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: pgweb
+  template:
+    metadata:
+      labels:
+        {{- include "aig-bank.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: pgweb
+    spec:
+      containers:
+        - name: pgweb
+          image: "{{ .Values.pgweb.image.repository }}:{{ .Values.pgweb.image.tag }}"
+          imagePullPolicy: {{ .Values.pgweb.image.pullPolicy }}
+          args:
+            - pgweb
+            - --bind=0.0.0.0
+            - --listen=80
+          ports:
+            - name: http
+              containerPort: {{ .Values.pgweb.service.port }}
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "aig-bank.secretName" . }}
+                  key: PGWEB_DATABASE_URL
+          readinessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: http
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          {{- with .Values.pgweb.resources }}
+          resources:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}
