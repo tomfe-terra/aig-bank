@@ -51,11 +51,19 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- printf "%s-config" (include "aig-bank.fullname" .) -}}
 {{- end -}}
 
+{{- define "aig-bank.internalAppOrigin" -}}
+{{- printf "http://%s.%s.svc.cluster.local" (include "aig-bank.app.fullname" .) .Release.Namespace -}}
+{{- end -}}
+
+{{- define "aig-bank.internalPayOrigin" -}}
+{{- printf "http://%s.%s.svc.cluster.local" (include "aig-bank.pay.fullname" .) .Release.Namespace -}}
+{{- end -}}
+
 {{- define "aig-bank.apiCorsOriginsJson" -}}
 {{- if .Values.api.env.corsOrigins -}}
 {{- toJson .Values.api.env.corsOrigins -}}
 {{- else -}}
-{{- toJson (list (printf "https://app.%s" .Values.domain) (printf "https://pay.%s" .Values.domain)) -}}
+{{- toJson (list (printf "https://app.%s" .Values.domain) (printf "https://pay.%s" .Values.domain) (include "aig-bank.internalAppOrigin" .) (include "aig-bank.internalPayOrigin" .)) -}}
 {{- end -}}
 {{- end -}}
 
