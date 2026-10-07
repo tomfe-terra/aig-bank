@@ -2,7 +2,7 @@ apiVersion: v2
 name: aig-bank
 description: Helm chart for the AIG Bank stack
 type: application
-version: 0.1.0
+version: 0.1.6
 appVersion: "1.0.0"
 dependencies:
   - name: postgresql

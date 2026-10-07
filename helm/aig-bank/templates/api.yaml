@@ -29,6 +29,8 @@ spec:
       app.kubernetes.io/component: api
   template:
     metadata:
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/config.yaml") . | sha256sum }}
       labels:
         {{- include "aig-bank.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: api

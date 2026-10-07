@@ -87,39 +87,27 @@ jobs:
         run: helm dependency build ./helm/aig-bank
 
       - name: Lint chart
+        shell: bash
         run: |
-          helm lint ./helm/aig-bank --strict \
-            --set-string ingress.enabled=false \
-            --set-string fullnameOverride=aigbank \
-            --set-string postgresql.auth.password=test-password \
-            --set-string api.env.jwtSecretKey=test-jwt-secret \
-            --set-string api.env.aesKey=test-aes-key \
-            --set-string api.env.hmacKey=test-hmac-key \
-            --set-string api.image.repository=test/aig-bank-api \
-            --set-string api.image.tag=test \
-            --set-string ui.image.repository=test/aig-ui \
-            --set-string ui.image.tag=test \
-            --set-string pay.image.repository=test/aig-pay \
-            --set-string pay.image.tag=test \
-            --set-string pay.env.apiEndpoint=http://aigbank-api
+          helm lint ./helm/aig-bank --strict
+          for values in ./helm/aig-bank/ci/*-values.yaml; do
+            helm lint ./helm/aig-bank --strict --values "$values"
+          done
 
-      - name: Render chart
+      - name: Check existing Secret mode
+        shell: bash
         run: |
-          helm template test-release ./helm/aig-bank \
-            --set-string ingress.enabled=false \
-            --set-string fullnameOverride=aigbank \
-            --set-string postgresql.auth.password=test-password \
-            --set-string api.env.jwtSecretKey=test-jwt-secret \
-            --set-string api.env.aesKey=test-aes-key \
-            --set-string api.env.hmacKey=test-hmac-key \
-            --set-string api.image.repository=test/aig-bank-api \
-            --set-string api.image.tag=test \
-            --set-string ui.image.repository=test/aig-ui \
-            --set-string ui.image.tag=test \
-            --set-string pay.image.repository=test/aig-pay \
-            --set-string pay.image.tag=test \
-            --set-string pay.env.apiEndpoint=http://aigbank-api \
-            --debug > /dev/null
+          rendered="$(helm template test-release ./helm/aig-bank --values ./helm/aig-bank/ci/existing-secret-values.yaml)"
+          rendered_secrets="$(yq ea '[select(.kind == "Secret") | .metadata.name] | join(",")' <<< "$rendered")"
+          referenced_secrets="$(yq ea '[.. | select(tag == "!!map" and has("secretKeyRef")) | .secretKeyRef.name] | unique | join(",")' <<< "$rendered")"
+          if [[ -n "$rendered_secrets" ]]; then
+            echo "❌ Chart rendered Secrets despite an existing Secret: $rendered_secrets"
+            exit 1
+          fi
+          if [[ "$referenced_secrets" != "aigbank-external" ]]; then
+            echo "❌ Pods must read only aigbank-external, found: $referenced_secrets"
+            exit 1
+          fi
 
   build-amd64:
     name: Build and Push (${{ matrix.service }}, linux/amd64)
@@ -191,6 +179,7 @@ jobs:
 
   publish-chart:
     name: Publish Helm Chart
+    if: github.event_name != 'pull_request'
     needs:
       - prepare
       - test-chart

@@ -1,3 +1,4 @@
+{{- if not .Values.secrets.existingSecret }}
 apiVersion: v1
 kind: Secret
 metadata:
@@ -15,6 +16,7 @@ stringData:
   AES_KEY: {{ .Values.api.env.aesKey | quote }}
   HMAC_KEY: {{ .Values.api.env.hmacKey | quote }}
 ---
+{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:

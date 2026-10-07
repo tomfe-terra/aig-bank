@@ -44,7 +44,7 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 
 {{- define "aig-bank.secretName" -}}
-{{- printf "%s-secrets" (include "aig-bank.fullname" .) -}}
+{{- default (printf "%s-secrets" (include "aig-bank.fullname" .)) .Values.secrets.existingSecret -}}
 {{- end -}}
 
 {{- define "aig-bank.configMapName" -}}
