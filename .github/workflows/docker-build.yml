@@ -121,6 +121,28 @@ jobs:
             --set-string pay.env.apiEndpoint=http://aigbank-api \
             --debug > /dev/null
 
+      - name: Render chart with an existing Secret
+        run: |
+          RENDERED="$(helm template test-release ./helm/aig-bank \
+            --set-string ingress.enabled=false \
+            --set-string fullnameOverride=aigbank \
+            --set-string secrets.existingSecret=aigbank-external \
+            --set-string postgresql.auth.existingSecret=aigbank-external \
+            --set-string postgresql.auth.secretKeys.adminPasswordKey=POSTGRES_PASSWORD \
+            --set-string postgresql.auth.secretKeys.userPasswordKey=POSTGRES_PASSWORD \
+            --set-string api.image.repository=test/aig-bank-api \
+            --set-string api.image.tag=test \
+            --set-string ui.image.repository=test/aig-ui \
+            --set-string ui.image.tag=test \
+            --set-string pay.image.repository=test/aig-pay \
+            --set-string pay.image.tag=test \
+            --set-string pay.env.apiEndpoint=http://aigbank-api)"
+          if grep -q 'name: aigbank-secrets' <<< "${RENDERED}"; then
+            echo "❌ Chart rendered its own Secret despite secrets.existingSecret"
+            exit 1
+          fi
+          grep -q 'name: aigbank-external' <<< "${RENDERED}"
+
   build-amd64:
     name: Build and Push (${{ matrix.service }}, linux/amd64)
     needs: prepare

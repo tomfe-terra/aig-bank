@@ -3,6 +3,10 @@ domain: aig-bank.example.com
 nameOverride: ""
 fullnameOverride: ""
 
+secrets:
+  # -- Name of an existing Secret holding POSTGRES_USER, POSTGRES_PASSWORD, POSTGRES_DB, DATABASE_URL, PGWEB_DATABASE_URL, JWT_SECRET_KEY, AES_KEY and HMAC_KEY. When set, the chart does not render its own Secret and the credential values (`postgresql.auth.password`, `api.env.jwtSecretKey`, `api.env.aesKey`, `api.env.hmacKey`) are ignored. Point `postgresql.auth.existingSecret` at the same Secret so the bundled database uses the same password.
+  existingSecret: ""
+
 ingress:
   enabled: true
   className: nginx
