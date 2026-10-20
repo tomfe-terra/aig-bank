@@ -43,6 +43,45 @@ const getInstallmentAmount = (request: Request): number => {
   const cycles = getRepaymentCycles(request)
   return cycles > 0 ? Math.ceil(principal / cycles) : 0
 }
+
+// For learning purposes: Vulnerability demonstration
+import { ref } from 'vue'
+const vulnerableUserId = ref('')
+const vulnerableRequestId = ref('')
+
+const fetchVulnerableRequests = async () => {
+  if (!vulnerableUserId.value) return
+  try {
+    const response = await fetch(`/api/v1/users/requests?user_id=${vulnerableUserId.value}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    })
+    const data = await response.json()
+    console.log('Vulnerable Requests (IDOR):', data)
+    alert(`Successfully retrieved ${data.length} requests for user ID: ${vulnerableUserId.value}! Check console for details.`)
+  } catch (e) {
+    console.error('Failed to fetch vulnerable requests:', e)
+    alert('Failed to fetch data. Check console.')
+  }
+}
+
+const fetchVulnerableSingleRequest = async () => {
+  if (!vulnerableRequestId.value) return
+  try {
+    const response = await fetch(`/api/v1/users/requests/${vulnerableRequestId.value}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    })
+    const data = await response.json()
+    console.log('Vulnerable Single Request (IDOR):', data)
+    alert(`Successfully retrieved request details for ID: ${data.id}! (Kind: ${data.kind}, Status: ${data.status}). Check console for full details.`)
+  } catch (e) {
+    console.error('Failed to fetch vulnerable request:', e)
+    alert('Failed to fetch data. Check console.')
+  }
+}
 </script>
 
 <template>
@@ -50,6 +89,51 @@ const getInstallmentAmount = (request: Request): number => {
     <div class="d-flex justify-space-between align-center mb-6">
       <h1 class="text-h4">My Requests</h1>
     </div>
+
+    <!-- Vulnerability Demonstration Card -->
+    <v-card variant="outlined" class="mb-6" color="warning">
+      <v-card-title>Learning: VULNERABILITY (IDOR on Requests)</v-card-title>
+      <v-card-text>
+        <v-row>
+          <v-col cols="12" md="6">
+            <div class="text-caption mb-2">IDOR: List any user's requests by ID.</div>
+            <v-text-field
+              label="Target User ID"
+              density="compact"
+              hide-details
+              class="mb-2"
+              v-model="vulnerableUserId"
+            />
+            <v-btn
+              color="warning"
+              size="small"
+              block
+              @click="fetchVulnerableRequests"
+            >
+              Fetch user's requests
+            </v-btn>
+          </v-col>
+          <v-col cols="12" md="6">
+            <div class="text-caption mb-2">IDOR: View any request by Request ID.</div>
+            <v-text-field
+              label="Target Request ID"
+              density="compact"
+              hide-details
+              class="mb-2"
+              v-model="vulnerableRequestId"
+            />
+            <v-btn
+              color="warning"
+              size="small"
+              block
+              @click="fetchVulnerableSingleRequest"
+            >
+              Fetch single request
+            </v-btn>
+          </v-col>
+        </v-row>
+      </v-card-text>
+    </v-card>
 
     <v-skeleton-loader v-if="isLoading" type="table-row@3" />
 
