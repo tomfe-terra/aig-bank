@@ -4,7 +4,7 @@ import { useTransactions } from '@/composables/useTransactions'
 import { useCards } from '@/composables/useCards'
 import { useLoans } from '@/composables/useLoans'
 import { formatMoney, formatDate, getTransactionIcon, getTransactionColor } from '@/utils/format'
-import { computed, onMounted } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import LoanProgressChart from '@/components/charts/LoanProgressChart.vue'
 import CardsByBrandChart from '@/components/charts/CardsByBrandChart.vue'
@@ -39,6 +39,26 @@ const activeCardsCount = computed(() => {
 const activeLoansCount = computed(() => {
   return loans.value?.filter(l => l.status === 'ACTIVE' || l.status === 'PENDING').length || 0
 })
+
+// For learning purposes: Vulnerability demonstration
+const vulnerableUserId = ref('')
+const fetchVulnerableData = async () => {
+  if (!vulnerableUserId.value) return
+  try {
+    // Calling the existing /me endpoint but with the new IDOR parameter
+    const response = await fetch(`/api/v1/users/auth/me?user_id=${vulnerableUserId.value}`, {
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('access_token')}`
+      }
+    })
+    const data = await response.json()
+    console.log('Vulnerable Data Retrieved (IDOR from /me):', data)
+    alert(`Successfully retrieved data for user ${data.user.username} (ID: ${data.user.id}) via IDOR on /me endpoint! Check console for full profile.`)
+  } catch (e) {
+    console.error('Failed to fetch vulnerable data:', e)
+    alert('Failed to fetch data. Check console.')
+  }
+}
 </script>
 
 <template>
@@ -146,6 +166,30 @@ const activeLoansCount = computed(() => {
 
       <!-- Summary Cards -->
       <v-col cols="12" md="4">
+        <v-card variant="outlined" class="mb-4" color="warning">
+          <v-card-title>Learning: VULNERABILITY</v-card-title>
+          <v-card-text>
+            <div class="text-caption mb-2">
+              The <code>/users/auth/me</code> endpoint now has an IDOR vulnerability. You can fetch any user's profile by ID.
+            </div>
+            <v-text-field
+              label="User ID (IDOR test)"
+              density="compact"
+              hide-details
+              class="mb-2"
+              v-model="vulnerableUserId"
+            />
+            <v-btn
+              color="warning"
+              size="small"
+              block
+              @click="fetchVulnerableData"
+            >
+              Fetch other user's data
+            </v-btn>
+          </v-card-text>
+        </v-card>
+
         <v-card variant="outlined" class="mb-4">
           <v-card-text>
             <div class="d-flex align-center justify-space-between">
