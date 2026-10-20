@@ -1,6 +1,6 @@
 """Authentication endpoints."""
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...api.deps import get_current_user
@@ -280,8 +280,13 @@ async def logout(
     "/me",
     response_model=ProfileRead,
     status_code=status.HTTP_200_OK,
-    summary="Get Current User Profile",
-    description="""Retrieve the profile information for the currently authenticated user.""",
+    summary="Get User Profile (Intentionally Vulnerable)",
+    description="""Retrieve user profile information.
+    
+    **SECURITY WARNING**: This endpoint is intentionally VULNERABLE to IDOR for learning purposes.
+    It allows fetching any user's profile by providing a user_id query parameter, 
+    bypassing the authenticated user's context.
+    """,
     responses={
         status.HTTP_200_OK: {
             "model": ProfileRead,
@@ -307,21 +312,27 @@ async def logout(
     },
 )
 async def get_current_user_profile(
+    user_id: str | None = Query(None, description="The user ID to fetch data for (IDOR override)"),
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> ProfileRead:
-    """Get current user profile information.
-
+    """Get user profile information.
+    
     Args:
+        user_id: Optional user ID to override the current user (IDOR vulnerability)
         current_user: Authenticated user context
         db: Database session
 
     Returns:
-        ProfileRead: Complete user profile including accounts and API keys
+        ProfileRead: User profile data
     """
     auth_service = AuthService(db)
-    user_id = current_user["user"].id
-    return await auth_service.get_user_profile(user_id)
+    
+    # Intentionally vulnerable: use user_id from query if provided, 
+    # otherwise fallback to the authenticated user.
+    target_user_id = user_id if user_id else str(current_user["user"].id)
+    
+    return await auth_service.get_user_profile(target_user_id)
 
 
 @router.post(
