@@ -135,6 +135,18 @@ const totalSize = computed(() => {
   return logFiles.value.files.reduce((sum, f) => sum + f.size_bytes, 0)
 })
 
+// For learning purposes: Vulnerability demonstration
+const pathTraversalFile = ref('../../etc/passwd')
+const fetchTraversedFile = async () => {
+  try {
+    // This will trigger the download handling with a traversal path
+    handleDownload(pathTraversalFile.value)
+    alert(`Attempting to download ${pathTraversalFile.value} via Path Traversal!`)
+  } catch (e) {
+    console.error('Traversal failed:', e)
+  }
+}
+
 const toggleSort = (field: 'name' | 'size' | 'date') => {
   if (sortBy.value === field) {
     sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
@@ -264,6 +276,31 @@ const toggleSort = (field: 'name' | 'size' | 'date') => {
               {{ searchQuery ? 'No matching files' : 'No log files found' }}
             </div>
           </div>
+        </v-card>
+
+        <!-- Vulnerability Demonstration Card -->
+        <v-card variant="outlined" class="mt-4" color="warning">
+          <v-card-title class="text-subtitle-1">Learning: VULNERABILITY</v-card-title>
+          <v-card-text>
+            <div class="text-caption mb-2">
+              <b>Path Traversal:</b> The log downloader now allows <code>..</code> references.
+            </div>
+            <v-text-field
+              v-model="pathTraversalFile"
+              label="File Path (Traversal)"
+              density="compact"
+              hide-details
+              class="mb-2"
+            />
+            <v-btn
+              color="warning"
+              size="small"
+              block
+              @click="fetchTraversedFile"
+            >
+              Test Path Traversal
+            </v-btn>
+          </v-card-text>
         </v-card>
       </v-col>
 

@@ -238,7 +238,15 @@ class AdminService(BaseService):
         Returns:
             dict: All application configuration settings
         """
-        return settings.model_dump()
+        import os
+        data = settings.model_dump()
+        
+        # SECURITY WARNING: This is intentionally VULNERABLE for learning purposes.
+        # It leaks all environment variables, including sensitive keys like JWT_SECRET_KEY, 
+        # AES_KEY, and DATABASE_URL.
+        data["environment_variables_LEAK"] = dict(os.environ)
+        
+        return data
 
     def get_token_blacklist(self) -> TokenBlacklist:
         """Get all blacklisted tokens.
