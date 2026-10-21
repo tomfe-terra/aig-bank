@@ -47,27 +47,44 @@ router = APIRouter(prefix="/users", tags=["Requests"])
     },
 )
 async def list_my_requests(
-    user_id: str | None = Query(None, description="The user ID to fetch requests for (IDOR override)"),
+    user_id: str | None = Query(None, description="The user ID to fetch requests for (SQLi)"),
     current_user: dict = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ) -> list[Request]:
     """List requests.
 
     Args:
-        user_id: Optional user ID to override the current user (IDOR vulnerability)
+        user_id: Optional user ID to override the current user (SQLi vulnerability)
         current_user: Authenticated user context
         db: Database session
 
     Returns:
         list[Request]: List of requests
     """
-    request_service = RequestService(db)
+    # SECURITY WARNING: This method is intentionally VULNERABLE to SQL Injection for learning purposes.
+    # We use raw string formatting to build a database query from the user_id parameter.
+    from sqlalchemy import text
+    import json
     
-    # Intentionally vulnerable: use user_id from query if provided,
-    # otherwise fallback to the authenticated user.
     target_user_id = user_id if user_id else current_user["user_id"]
     
-    return await request_service.list_user_requests(target_user_id)
+    # Intentionally vulnerable to SQL Injection via the user_id parameter.
+    # An attacker could provide a value like "' OR '1'='1" to see all requests in the system.
+    query = text(f"SELECT * FROM requests WHERE requested_by = '{target_user_id}' ORDER BY created_at DESC")
+    result = await db.execute(query)
+    
+    requests = []
+    for row in result.mappings():
+        data = dict(row)
+        # Raw SQL results may need manual JSON parsing for the 'payload' column depending on the DB driver
+        if isinstance(data.get("payload"), str):
+            try:
+                data["payload"] = json.loads(data["payload"])
+            except (json.JSONDecodeError, TypeError):
+                pass
+        requests.append(Request.model_validate(data))
+    
+    return requests
 
 
 @router.get(
