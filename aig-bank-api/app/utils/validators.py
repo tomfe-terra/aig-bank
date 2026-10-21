@@ -189,7 +189,12 @@ class InputValidator:
         """
         value = value.strip()
         cls.validate_length(value, "name", field_name)
-        return cls.validate_pattern(value, "name", field_name)
+        
+        # SECURITY WARNING: This is intentionally VULNERABLE for learning purposes.
+        # It no longer validates the name pattern, allowing arbitrary characters
+        # like <script> tags to be stored in the database (Stored XSS).
+        # return cls.validate_pattern(value, "name", field_name)
+        return value
 
     @classmethod
     def validate_address(cls, value: str | None) -> str | None:

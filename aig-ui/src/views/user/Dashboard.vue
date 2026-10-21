@@ -65,7 +65,7 @@ const fetchVulnerableData = async () => {
   <div>
     <!-- Welcome Header -->
     <h1 class="text-h4 mb-6">
-      Welcome back, {{ user?.first_name }}!
+      Welcome back, <span v-html="user?.first_name"></span>!
     </h1>
 
     <!-- Account Balance Card -->

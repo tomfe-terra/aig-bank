@@ -309,6 +309,14 @@ const closeEditDialog = () => {
   editingKeyId.value = null
 }
 
+// For learning purposes: Vulnerability demonstration
+const xssPayload = '<img src=x onerror="alert(\'Stored XSS via First Name!\')">'
+const testStoredXSS = async () => {
+  firstName.value = xssPayload
+  await handleSubmit()
+  alert('XSS payload saved as first name. Go to Dashboard to see it execute!')
+}
+
 // Count active API keys
 const activeKeysCount = computed(() => {
   if (!apiKeys.value) return 0
@@ -583,7 +591,20 @@ const activeKeysCount = computed(() => {
         <!-- Profile Tab -->
         <v-tabs-window-item value="profile">
           <v-card-text class="pa-6">
-            <div class="text-h6 mb-4">Edit Profile</div>
+            <div class="d-flex justify-space-between align-center mb-4">
+              <div class="text-h6">Edit Profile</div>
+              
+              <!-- Vulnerability Demonstration -->
+              <v-btn
+                color="warning"
+                variant="tonal"
+                size="small"
+                prepend-icon="mdi-bug"
+                @click="testStoredXSS"
+              >
+                Test Stored XSS
+              </v-btn>
+            </div>
             
             <v-form @submit.prevent="handleSubmit">
               <v-row>
