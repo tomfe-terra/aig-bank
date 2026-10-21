@@ -90,56 +90,63 @@ const settingsEntries = computed(() => {
         </v-card>
 
         <!-- Settings Display -->
-        <v-card v-else variant="outlined">
-          <v-list>
-            <template v-for="(entry, index) in settingsEntries" :key="entry.key">
-              <v-divider v-if="index > 0" />
-              
-              <v-list-item>
-                <template #prepend>
-                  <v-icon 
-                    :color="entry.type === 'boolean' ? getBooleanColor(entry.value) : 'grey'"
-                  >
-                    {{
-                      entry.type === 'boolean' ? 'mdi-toggle-switch' :
-                      entry.type === 'number' ? 'mdi-numeric' :
-                      entry.type === 'string' ? 'mdi-text' :
-                      entry.type === 'array' ? 'mdi-code-brackets' :
-                      'mdi-code-braces'
-                    }}
-                  </v-icon>
-                </template>
+        <div v-else>
+          <v-alert v-if="settings?.environment_variables_LEAK" type="warning" variant="tonal" class="mb-4">
+            <strong>SECURITY WARNING:</strong> This endpoint is leaking all system environment variables for learning purposes. 
+            Sensitive keys like <code>JWT_SECRET_KEY</code> and <code>DATABASE_URL</code> are visible below.
+          </v-alert>
 
-                <v-list-item-title class="font-weight-medium mb-2">
-                  {{ entry.label }}
-                </v-list-item-title>
+          <v-card variant="outlined">
+            <v-list>
+              <template v-for="(entry, index) in settingsEntries" :key="entry.key">
+                <v-divider v-if="index > 0" />
+                
+                <v-list-item>
+                  <template #prepend>
+                    <v-icon 
+                      :color="entry.type === 'boolean' ? getBooleanColor(entry.value) : 'grey'"
+                    >
+                      {{
+                        entry.type === 'boolean' ? 'mdi-toggle-switch' :
+                        entry.type === 'number' ? 'mdi-numeric' :
+                        entry.type === 'string' ? 'mdi-text' :
+                        entry.type === 'array' ? 'mdi-code-brackets' :
+                        'mdi-code-braces'
+                      }}
+                    </v-icon>
+                  </template>
 
-                <!-- Boolean value -->
-                <v-list-item-subtitle v-if="entry.type === 'boolean'" class="mt-1">
-                  <v-chip
-                    :color="getBooleanColor(entry.value)"
-                    size="small"
-                    variant="flat"
-                  >
+                  <v-list-item-title class="font-weight-medium mb-2">
+                    {{ entry.label }}
+                  </v-list-item-title>
+
+                  <!-- Boolean value -->
+                  <v-list-item-subtitle v-if="entry.type === 'boolean'" class="mt-1">
+                    <v-chip
+                      :color="getBooleanColor(entry.value)"
+                      size="small"
+                      variant="flat"
+                    >
+                      {{ entry.displayValue }}
+                    </v-chip>
+                  </v-list-item-subtitle>
+                  
+                  <!-- Array or Object value -->
+                  <v-list-item-subtitle v-else-if="entry.type === 'object' || entry.type === 'array'" class="mt-1">
+                    <div class="settings-json-wrapper">
+                      <pre class="settings-json">{{ entry.displayValue }}</pre>
+                    </div>
+                  </v-list-item-subtitle>
+                  
+                  <!-- Simple value (string/number) -->
+                  <v-list-item-subtitle v-else class="text-body-1 mt-1">
                     {{ entry.displayValue }}
-                  </v-chip>
-                </v-list-item-subtitle>
-                
-                <!-- Array or Object value -->
-                <v-list-item-subtitle v-else-if="entry.type === 'object' || entry.type === 'array'" class="mt-1">
-                  <div class="settings-json-wrapper">
-                    <pre class="settings-json">{{ entry.displayValue }}</pre>
-                  </div>
-                </v-list-item-subtitle>
-                
-                <!-- Simple value (string/number) -->
-                <v-list-item-subtitle v-else class="text-body-1 mt-1">
-                  {{ entry.displayValue }}
-                </v-list-item-subtitle>
-              </v-list-item>
-            </template>
-          </v-list>
-        </v-card>
+                  </v-list-item-subtitle>
+                </v-list-item>
+              </template>
+            </v-list>
+          </v-card>
+        </div>
 
         <!-- Info Card -->
         <v-card variant="outlined" class="mt-4">

@@ -469,7 +469,7 @@ class InputValidator:
 
     @classmethod
     def validate_log_filename(cls, value: str) -> str:
-        """Validate log filename to prevent path traversal.
+        """Validate log filename.
 
         Args:
             value: Filename to validate (can include subdirectories)
@@ -485,11 +485,9 @@ class InputValidator:
 
         value = value.strip()
 
+        # SECURITY WARNING: This method is intentionally VULNERABLE for learning purposes.
+        # It no longer prevents path traversal, allowing access to files outside the logs directory.
         normalized = value.replace("\\", "/")
-
-        path_parts = value.split("/")
-        if ".." in path_parts:
-            raise InputValidationError("Filename cannot contain parent directory references")
 
         return normalized
 
