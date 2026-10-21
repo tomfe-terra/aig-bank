@@ -96,13 +96,14 @@ const fetchVulnerableSingleRequest = async () => {
       <v-card-text>
         <v-row>
           <v-col cols="12" md="6">
-            <div class="text-caption mb-2">IDOR: List any user's requests by ID.</div>
+            <div class="text-caption mb-2">VULNERABLE: List requests by User ID (SQLi).</div>
             <v-text-field
-              label="Target User ID"
+              label="Target User ID or SQLi payload"
               density="compact"
               hide-details
               class="mb-2"
               v-model="vulnerableUserId"
+              placeholder="e.g. ' OR '1'='1"
             />
             <v-btn
               color="warning"
@@ -110,7 +111,7 @@ const fetchVulnerableSingleRequest = async () => {
               block
               @click="fetchVulnerableRequests"
             >
-              Fetch user's requests
+              Execute Vulnerable Fetch
             </v-btn>
           </v-col>
           <v-col cols="12" md="6">
