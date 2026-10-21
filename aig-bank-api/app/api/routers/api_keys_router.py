@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ...api.deps import get_current_user
+from ...api.deps import get_current_user_insecure
 from ...core.db import get_db
 from ...core.errors import ErrorCode
 from ...schemas.api_key_schemas import (
@@ -70,7 +70,7 @@ The response includes the API key ID and secret. **Store the secret securely as 
 )
 async def create_api_key(
     api_key_data: APIKeyCreate,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user_insecure),
     db: AsyncSession = Depends(get_db),
 ) -> APIKeySecretRead:
     """Create a new API key for the current user.
@@ -123,7 +123,7 @@ By default, only active API keys are returned. Set `include_revoked=true` to als
 )
 async def list_api_keys(
     include_revoked: bool | None = False,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user_insecure),
     db: AsyncSession = Depends(get_db),
 ) -> APIKeyList:
     """List API keys for the current user.
@@ -208,7 +208,7 @@ Only the name can be updated. The client_id and secret cannot be changed.""",
 async def update_api_key(
     api_key_id: str,
     api_key_data: APIKeyUpdate,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user_insecure),
     db: AsyncSession = Depends(get_db),
 ) -> APIKeyRead:
     """Update an API key's name.
@@ -295,7 +295,7 @@ async def update_api_key(
 )
 async def revoke_api_key(
     api_key_id: str,
-    current_user: dict = Depends(get_current_user),
+    current_user: dict = Depends(get_current_user_insecure),
     db: AsyncSession = Depends(get_db),
 ) -> Message:
     """Revoke an API key by ID.

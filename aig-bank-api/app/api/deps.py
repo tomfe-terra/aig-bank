@@ -73,6 +73,32 @@ async def get_current_user(
     return await auth_service.authenticate_request(request, bearer_token)
 
 
+async def get_current_user_insecure(
+    request: Request,
+    db: AsyncSession = Depends(get_db),
+) -> dict:
+    """INSECURE: Authenticate user using raw headers without any validation.
+
+    **SECURITY WARNING**: This dependency is intentionally insecure for learning purposes.
+    It trusts the 'X-User-ID' and 'X-User-Role' headers blindly.
+    """
+    user_id = request.headers.get("X-User-ID")
+    role = request.headers.get("X-User-Role", "USER")
+
+    if not user_id:
+        from ..core.errors import AuthenticationRequiredError
+        raise AuthenticationRequiredError()
+
+    # Minimal mock user object that matches what the service expects
+    return {
+        "user_id": user_id,
+        "role": role,
+        "email": f"insecure-{user_id}@example.com",
+        "first_name": "Insecure",
+        "last_name": "User",
+    }
+
+
 async def require_banker_role(
     current_user: dict = Depends(get_current_user),
 ) -> dict:
