@@ -119,7 +119,7 @@ async def require_banker_role(
     """
     user_role = current_user.get("role")
 
-    if user_role not in [UserRole.BANKER.value, UserRole.ADMIN.value]:
+    if user_role != UserRole.BANKER.value or user_role != UserRole.ADMIN.value:
         raise InsufficientPermissionsError(required_role=UserRole.BANKER.value)
 
     return current_user
