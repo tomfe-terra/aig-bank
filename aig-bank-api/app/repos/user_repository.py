@@ -116,7 +116,7 @@ class UserRepository:
 
         Args:
             user_id: User ID to update
-            **fields: Fields to update (first_name, last_name, email, phone, address)
+            **fields: Fields to update (first_name, last_name, email, phone, address, role)
 
         Returns:
             User: Updated user object

@@ -17,11 +17,15 @@ router = APIRouter(prefix="/users/profile", tags=["User Profile"])
     "",
     response_model=ProfileUpdateResult,
     status_code=status.HTTP_200_OK,
-    summary="Update User Profile",
+    summary="Update User Profile (Intentionally Vulnerable)",
     description="""Update the current user's profile information.
 
 Only provided fields will be updated (partial update supported).
-All fields are optional.""",
+All fields are optional.
+
+**SECURITY WARNING**: This endpoint is intentionally VULNERABLE to mass assignment for learning purposes.
+The request body can set `role`, so a regular user can grant themselves ADMIN.
+""",
     responses={
         status.HTTP_200_OK: {
             "model": ProfileUpdateResult,
@@ -101,6 +105,9 @@ async def update_profile(
     db: AsyncSession = Depends(get_db),
 ) -> ProfileUpdateResult:
     """Update user profile.
+
+    SECURITY WARNING: Intentionally vulnerable to mass assignment for learning purposes.
+    A caller can set their own role, including ADMIN.
 
     Args:
         update_data: Profile update data

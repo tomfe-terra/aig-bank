@@ -6,6 +6,7 @@ import { useAPIKeys } from '@/composables/useAPIKeys'
 import { useToast } from '@/composables/useToast'
 import { formatDate, formatMoney, getErrorMessage } from '@/utils/format'
 import EmptyState from '@/components/EmptyState.vue'
+import { UserRole } from '@/types'
 
 // Profile composable
 const { 
@@ -317,6 +318,16 @@ const testStoredXSS = async () => {
   alert('XSS payload saved as first name. Go to Dashboard to see it execute!')
 }
 
+const testMassAssignment = async () => {
+  try {
+    const result = await updateProfile({ role: UserRole.ADMIN })
+    showToast(`Role updated to ${result.user.role} via mass assignment`, 'warning')
+    alert(`Mass assignment accepted. Your role is now ${result.user.role}.`)
+  } catch (e: unknown) {
+    showToast(getErrorMessage(e, 'Failed to change role'), 'error')
+  }
+}
+
 // Count active API keys
 const activeKeysCount = computed(() => {
   if (!apiKeys.value) return 0
@@ -595,15 +606,27 @@ const activeKeysCount = computed(() => {
               <div class="text-h6">Edit Profile</div>
               
               <!-- Vulnerability Demonstration -->
-              <v-btn
-                color="warning"
-                variant="tonal"
-                size="small"
-                prepend-icon="mdi-bug"
-                @click="testStoredXSS"
-              >
-                Test Stored XSS
-              </v-btn>
+              <div class="d-flex ga-2">
+                <v-btn
+                  color="warning"
+                  variant="tonal"
+                  size="small"
+                  prepend-icon="mdi-bug"
+                  @click="testStoredXSS"
+                >
+                  Test Stored XSS
+                </v-btn>
+                <v-btn
+                  color="error"
+                  variant="tonal"
+                  size="small"
+                  prepend-icon="mdi-shield-account"
+                  :loading="isUpdatingProfile"
+                  @click="testMassAssignment"
+                >
+                  Test Mass Assignment
+                </v-btn>
+              </div>
             </div>
             
             <v-form @submit.prevent="handleSubmit">

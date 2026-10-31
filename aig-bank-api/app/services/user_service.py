@@ -178,7 +178,11 @@ class UserService:
         Raises:
             ResourceNotFoundError: If user not found
         """
+        # SECURITY WARNING: This method is intentionally VULNERABLE to mass assignment
+        # for learning purposes. Every provided field, including role, is persisted.
         fields = update_data.model_dump(exclude_unset=True)
+        if isinstance(fields.get("role"), UserRole):
+            fields["role"] = fields["role"].value
 
         if not fields:
             raise InvalidDataError("profile", "empty", "No fields provided to update")

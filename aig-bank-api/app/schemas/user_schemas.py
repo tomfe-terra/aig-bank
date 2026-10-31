@@ -32,6 +32,9 @@ class ProfileUpdate(BaseModel):
     email: str | None = Field(None, description="User email address", examples=["john.doe@example.com"])
     phone: str | None = Field(None, description="User phone number", examples=["+1234567890"])
     address: str | None = Field(None, description="User address", examples=["123 Main St, City, Country"])
+    # SECURITY WARNING: This field is intentionally writable for learning purposes.
+    # Any authenticated user can set their own role, including ADMIN.
+    role: UserRole | None = Field(None, description="User role", examples=[UserRole.ADMIN])
 
     @field_validator("email")
     @classmethod

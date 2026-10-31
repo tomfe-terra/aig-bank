@@ -28,6 +28,7 @@ export interface ProfileUpdate {
   email?: string | null
   phone?: string | null
   address?: string | null
+  role?: UserRole | null
 }
 
 export interface ProfileUpdateResult {
