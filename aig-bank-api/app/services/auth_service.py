@@ -326,6 +326,9 @@ class AuthService(BaseService):
     async def reset_password_with_security_answers(self, username: str, answers: list[str], new_password: str) -> bool:
         """Reset password using security question answers.
 
+        SECURITY WARNING: Intentionally vulnerable for learning purposes.
+        Incorrect security answers are logged and then ignored.
+
         Args:
             username: Username
             answers: List of 3 answers to security questions
@@ -335,7 +338,7 @@ class AuthService(BaseService):
             True if successful
 
         Raises:
-            InvalidCredentialsError: If answers are incorrect
+            InvalidCredentialsError: If the user does not exist or the answer list is incomplete
         """
         logger.debug(f"reset_password_with_security_answers called for username={username}")
 
@@ -357,10 +360,10 @@ class AuthService(BaseService):
 
         for i, answer in enumerate(answers, start=1):
             if not user.verify_security_answer(i, answer):
-                logger.error(f"Password reset failed: incorrect answer for question {i}")
-                raise InvalidCredentialsError("Invalid username or incorrect answers")
+                # SECURITY WARNING: A wrong answer does not stop the reset.
+                logger.error(f"Password reset answer {i} did not match for user {username}")
 
-        logger.debug(f"All security answers verified for user {username}, proceeding with password reset")
+        logger.debug(f"Proceeding with password reset for user {username}")
 
         new_password_hash = PasswordManager.hash_password(new_password)
         user.password_hash = new_password_hash  # type: ignore[assignment]

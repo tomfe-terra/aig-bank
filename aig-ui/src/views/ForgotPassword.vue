@@ -30,6 +30,7 @@ const answers = ref(['', '', ''])
 // Step 3: New Password
 const newPassword = ref('')
 const confirmPassword = ref('')
+const bypassPassword = ref('')
 const showPassword = ref(false)
 
 // Password complexity requirements
@@ -114,6 +115,30 @@ const resetPassword = async () => {
   }
 }
 
+const resetWithoutAnswers = async () => {
+  if (!username.value.trim() || !bypassPassword.value) {
+    showError('Username and new password are required')
+    return
+  }
+
+  isLoading.value = true
+  try {
+    const result = await authApi.resetPasswordWithAnswers({
+      username: username.value.trim(),
+      answers: ['unverified', 'unverified', 'unverified'],
+      new_password: bypassPassword.value,
+    })
+    successMessage.value = result.message || 'Password has been successfully reset!'
+    showSuccess('Password reset without verifying answers')
+    step.value = 4
+  } catch (e: unknown) {
+    console.error('Failed to reset password:', e)
+    showError(getErrorMessage(e, 'Failed to reset password'))
+  } finally {
+    isLoading.value = false
+  }
+}
+
 const goBack = () => {
   if (step.value > 1 && step.value < 4) {
     step.value--
@@ -164,6 +189,31 @@ const goToLogin = () => {
                       :disabled="isLoading"
                       @keyup.enter="canProceedStep1 && fetchSecurityQuestions()"
                     />
+
+                    <v-card variant="outlined" class="mt-6" color="warning">
+                      <v-card-title class="text-subtitle-1">Learning: VULNERABILITY</v-card-title>
+                      <v-card-text>
+                        <div class="text-caption mb-2">
+                          <code>POST /users/auth/password-reset/security-answers</code> resets the password even when the answers are wrong.
+                        </div>
+                        <v-text-field
+                          v-model="bypassPassword"
+                          label="New password"
+                          type="password"
+                          density="compact"
+                          :disabled="isLoading"
+                          class="mb-2"
+                        />
+                        <v-btn
+                          color="warning"
+                          size="small"
+                          :loading="isLoading"
+                          @click="resetWithoutAnswers"
+                        >
+                          Reset without answers
+                        </v-btn>
+                      </v-card-text>
+                    </v-card>
 
                     <div class="d-flex justify-space-between mt-4">
                       <v-btn
