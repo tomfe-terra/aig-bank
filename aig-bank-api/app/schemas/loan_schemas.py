@@ -60,6 +60,17 @@ class LoanRead(BaseModel):
         return v
 
 
+class DocumentFetchResult(BaseModel):
+    """Body returned after the server fetches a caller-supplied URL."""
+
+    url: str = Field(..., description="URL that was requested")
+    status_code: int = Field(..., description="HTTP status from the remote response")
+    body: str = Field(..., description="Start of the response body")
+
+    model_config = ConfigDict(title="Document Fetch Result")
+
+
 __all__ = [
+    "DocumentFetchResult",
     "LoanRead",
 ]

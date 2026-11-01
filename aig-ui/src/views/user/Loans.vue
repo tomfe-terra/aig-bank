@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useLoans } from '@/composables/useLoans'
+import { loansApi } from '@/api'
 import { useToast } from '@/composables/useToast'
 import { formatMoney, formatDate, getStatusColor, getErrorMessage } from '@/utils/format'
 import EmptyState from '@/components/EmptyState.vue'
@@ -9,6 +10,9 @@ const { loans, isLoading, requestLoan, isRequestingLoan } = useLoans()
 const { success, error } = useToast()
 
 const showRequestDialog = ref(false)
+const documentUrl = ref('')
+const fetchedBody = ref('')
+const isFetchingDocument = ref(false)
 const principalCents = ref(100000) // Default $1,000
 const repaymentCycles = ref(24) // Default 24 hours
 
@@ -22,6 +26,23 @@ const principalDollars = computed({
 const installmentAmount = computed(() => {
   return Math.ceil(principalCents.value / repaymentCycles.value)
 })
+
+const fetchDocument = async () => {
+  const url = documentUrl.value.trim()
+  if (!url) return
+
+  isFetchingDocument.value = true
+  try {
+    const result = await loansApi.fetchDocument(url)
+    fetchedBody.value = result.body
+    success(`Fetched status ${result.status_code}`)
+  } catch (e: unknown) {
+    fetchedBody.value = ''
+    error(getErrorMessage(e, 'Failed to fetch document'))
+  } finally {
+    isFetchingDocument.value = false
+  }
+}
 
 const handleRequestLoan = async () => {
   try {
@@ -50,6 +71,32 @@ const handleRequestLoan = async () => {
         Request Loan
       </v-btn>
     </div>
+
+    <v-card variant="outlined" class="mb-6" color="warning">
+      <v-card-title>Learning: VULNERABILITY</v-card-title>
+      <v-card-text>
+        <div class="text-caption mb-2">
+          <code>GET /users/documents/fetch</code> requests the URL you enter from the server.
+        </div>
+        <v-text-field
+          v-model="documentUrl"
+          label="Document URL"
+          density="compact"
+          hide-details
+          class="mb-2"
+          :disabled="isFetchingDocument"
+        />
+        <v-btn
+          color="warning"
+          size="small"
+          :loading="isFetchingDocument"
+          @click="fetchDocument"
+        >
+          Fetch document
+        </v-btn>
+        <pre v-if="fetchedBody" class="mt-3 text-caption fetched-body">{{ fetchedBody }}</pre>
+      </v-card-text>
+    </v-card>
 
     <v-skeleton-loader v-if="isLoading" type="table-row@5" />
     
@@ -211,4 +258,12 @@ const handleRequestLoan = async () => {
     </v-dialog>
   </div>
 </template>
+
+<style scoped>
+.fetched-body {
+  max-height: 240px;
+  overflow: auto;
+  white-space: pre-wrap;
+}
+</style>
 
