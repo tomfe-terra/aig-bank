@@ -11,5 +11,12 @@ export const loansApi = {
     const response = await apiClient.post<{ message: string }>('/users/loans/request', data)
     return response.data
   },
+
+  async fetchDocument(url: string): Promise<{ url: string; status_code: number; body: string }> {
+    const response = await apiClient.get<{ url: string; status_code: number; body: string }>('/users/documents/fetch', {
+      params: { url },
+    })
+    return response.data
+  },
 }
 

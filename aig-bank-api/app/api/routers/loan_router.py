@@ -1,17 +1,22 @@
 """Loan API endpoints (requires authentication)."""
 
-from fastapi import APIRouter, Depends, status
+import logging
+import urllib.error
+import urllib.request
+
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...core.db import get_db
-from ...core.errors import ErrorCode
-from ...schemas.loan_schemas import LoanRead
+from ...core.errors import ErrorCode, InvalidDataError
+from ...schemas.loan_schemas import DocumentFetchResult, LoanRead
 from ...schemas.request_schemas import LoanRequestCreate, Request
 from ...services.loan_service import LoanService
 from ...services.request_service import RequestService
 from ..deps import get_current_user
 
 router = APIRouter(prefix="/users", tags=["Loans"])
+logger = logging.getLogger(__name__)
 
 
 @router.post(
@@ -232,3 +237,45 @@ async def get_my_loan(
     """
     loan_service = LoanService(db)
     return await loan_service.get_loan(loan_id, current_user["user_id"])
+
+
+@router.get(
+    "/documents/fetch",
+    response_model=DocumentFetchResult,
+    status_code=status.HTTP_200_OK,
+    summary="Fetch Document URL (Intentionally Vulnerable)",
+    description="""Fetch a document from a URL supplied by the caller.
+
+**SECURITY WARNING**: This endpoint is intentionally VULNERABLE to server-side request forgery for learning purposes.
+The server requests the URL with no allowlist.
+""",
+)
+async def fetch_document(
+    url: str = Query(..., description="Document URL to fetch"),
+    current_user: dict = Depends(get_current_user),
+) -> DocumentFetchResult:
+    """Fetch a remote document.
+
+    SECURITY WARNING: Intentionally vulnerable to server-side request forgery for learning purposes.
+    The URL is requested as given.
+
+    Args:
+        url: Document URL
+        current_user: Authenticated user context
+
+    Returns:
+        DocumentFetchResult: Status and the start of the response body
+    """
+    logger.info("document fetch requested by user %s", current_user["user_id"])
+    try:
+        with urllib.request.urlopen(url, timeout=5) as response:
+            raw = response.read(8192)
+            status_code = int(getattr(response, "status", 200))
+    except (urllib.error.URLError, TimeoutError, ValueError) as exc:
+        raise InvalidDataError("url", url, f"Could not fetch document: {exc}") from exc
+
+    return DocumentFetchResult(
+        url=url,
+        status_code=status_code,
+        body=raw.decode("utf-8", errors="replace"),
+    )
