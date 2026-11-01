@@ -17,6 +17,9 @@ const revealedCards = ref<Map<string, CardReveal>>(new Map())
 // Track which cards are currently shown (visible state)
 const visibleCards = ref<Set<string>>(new Set())
 const revealingCardId = ref<string | null>(null)
+const vulnerableCardId = ref('')
+const otherCard = ref<CardReveal | null>(null)
+const isTestingIdor = ref(false)
 
 // Confirm dialog state
 const showConfirmDialog = ref(false)
@@ -77,6 +80,25 @@ const cancelReveal = () => {
 const navigateToRequestCard = () => {
   router.push('/user/cards/request')
 }
+
+const fetchOtherCard = async () => {
+  const cardId = vulnerableCardId.value.trim()
+  if (!cardId) return
+
+  isTestingIdor.value = true
+  try {
+    const revealed = await revealCard(cardId)
+    otherCard.value = revealed
+    console.log('Vulnerable card reveal (IDOR):', revealed)
+    showToast(`Revealed ${revealed.brand} card ending ${revealed.pan.slice(-4)}`, 'warning')
+  } catch (e: unknown) {
+    otherCard.value = null
+    console.error('Failed to reveal card:', e)
+    showToast(getErrorMessage(e, 'Failed to reveal card details'), 'error')
+  } finally {
+    isTestingIdor.value = false
+  }
+}
 </script>
 
 <template>
@@ -91,6 +113,36 @@ const navigateToRequestCard = () => {
         Order Card
       </v-btn>
     </div>
+
+    <v-card variant="outlined" class="mb-4" color="warning">
+      <v-card-title>Learning: VULNERABILITY</v-card-title>
+      <v-card-text>
+        <div class="text-caption mb-2">
+          <code>GET /users/cards/{card_id}/reveal</code> no longer checks card ownership.
+          Enter another user's card ID to reveal it.
+        </div>
+        <v-text-field
+          v-model="vulnerableCardId"
+          label="Card ID (IDOR test)"
+          density="compact"
+          hide-details
+          class="mb-2"
+        />
+        <v-btn
+          color="warning"
+          size="small"
+          block
+          :loading="isTestingIdor"
+          @click="fetchOtherCard"
+        >
+          Reveal other user's card
+        </v-btn>
+        <div v-if="otherCard" class="mt-3 font-mono">
+          {{ formatCardNumber(otherCard.pan) }}
+          <span class="text-caption">CVV {{ otherCard.cvv }}</span>
+        </div>
+      </v-card-text>
+    </v-card>
 
     <v-skeleton-loader v-if="isLoading" type="card@3" />
     
