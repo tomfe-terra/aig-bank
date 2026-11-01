@@ -247,16 +247,24 @@ class TransactionService(BaseService):
         return await self._enrich_transaction_with_related_account(card_payment_tx)
 
     async def transfer_funds_for_user(self, request: TransferCreate, user_id: str) -> TransferRead:
-        """Transfer funds for a user, handling account lookup internally."""
+        """Transfer funds for a user, handling account lookup internally.
+
+        SECURITY WARNING: Intentionally vulnerable to broken object-level authorization
+        for learning purposes. A supplied source account is debited without an ownership check.
+        """
         logger.debug(f"transfer_funds_for_user called for user_id={user_id}, request={request}")
 
-        from_account = await self.account_repository.get_by_user_id(user_id)
-
-        logger.debug(f"Account lookup result for user {user_id}: account={'found' if from_account else 'NOT FOUND'}")
-
-        if not from_account:
-            logger.error(f"No account found for user {user_id}")
-            raise ResourceNotFoundError("Account", f"No account found for user {user_id}")
+        if request.from_account_number:
+            # SECURITY WARNING: Caller-chosen source account is trusted for learning purposes.
+            from_account = await self.account_repository.get_by_number(request.from_account_number)
+            if not from_account:
+                raise ResourceNotFoundError("Account", f"Source account {request.from_account_number} not found")
+        else:
+            from_account = await self.account_repository.get_by_user_id(user_id)
+            logger.debug(f"Account lookup result for user {user_id}: account={'found' if from_account else 'NOT FOUND'}")
+            if not from_account:
+                logger.error(f"No account found for user {user_id}")
+                raise ResourceNotFoundError("Account", f"No account found for user {user_id}")
 
         transfer_out_tx, _transfer_in_tx, from_account_response, to_account_response = await self._transfer_funds(
             from_account_number=from_account.number,  # type: ignore[arg-type]

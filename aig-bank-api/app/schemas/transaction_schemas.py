@@ -200,6 +200,13 @@ class CardPaymentCreate(BaseModel):
 class TransferCreate(BaseModel):
     """Transfer creation request."""
 
+    # SECURITY WARNING: This field is intentionally honored for learning purposes.
+    # The source account is not checked against the authenticated user.
+    from_account_number: str | None = Field(
+        None,
+        description="Source account number. When set, funds are taken from this account.",
+        examples=["1000000000001"],
+    )
     to_account_number: str = Field(
         ...,
         description="Destination account number",
@@ -218,10 +225,12 @@ class TransferCreate(BaseModel):
 
     model_config = ConfigDict(title="Create Transfer")
 
-    @field_validator("to_account_number")
+    @field_validator("from_account_number", "to_account_number")
     @classmethod
-    def validate_to_account_number(cls, v: str) -> str:
+    def validate_account_number(cls, v: str | None) -> str | None:
         """Validate account number format."""
+        if v is None:
+            return v
         from ..utils.validators import InputValidator
 
         return InputValidator.validate_account_number(v)
