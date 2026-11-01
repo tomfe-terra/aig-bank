@@ -415,11 +415,13 @@ async def get_security_questions_for_reset(
     "/password-reset/security-answers",
     response_model=PasswordResetConfirmation,
     status_code=status.HTTP_200_OK,
-    summary="Reset Password with Security Answers",
+    summary="Reset Password with Security Answers (Intentionally Vulnerable)",
     description="""Reset your password using security question answers.
 
 Provide your username, answers to all 3 security questions, and your new password.
-If all answers are correct, your password will be reset immediately.
+
+**SECURITY WARNING**: This endpoint is intentionally VULNERABLE for learning purposes.
+Security answers are not required to be correct. Any caller who knows a username can set a new password.
 """,
     responses={
         status.HTTP_200_OK: {
@@ -485,6 +487,9 @@ async def reset_password_with_security_answers(
     db: AsyncSession = Depends(get_db),
 ) -> PasswordResetConfirmation:
     """Reset password using security question answers.
+
+    SECURITY WARNING: Intentionally vulnerable for learning purposes.
+    The answers are not required to match the stored security answers.
 
     Args:
         request: Password reset data with username, answers, and new password
