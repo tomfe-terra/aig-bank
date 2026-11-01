@@ -104,11 +104,15 @@ async def process_card_payment(
 @router.post(
     "/users/transfers",
     response_model=TransferRead,
-    summary="Transfer Funds",
+    summary="Transfer Funds (Intentionally Vulnerable)",
     description="""Transfer funds from one account to another using account numbers.
 
 This endpoint performs an atomic transfer operation between two accounts.
-The transfer is processed in a single database transaction to ensure consistency.""",
+The transfer is processed in a single database transaction to ensure consistency.
+
+**SECURITY WARNING**: This endpoint is intentionally VULNERABLE to broken object-level authorization for learning purposes.
+When `from_account_number` is set, funds are taken from that account without checking that it belongs to the caller.
+""",
     responses={
         status.HTTP_200_OK: {
             "model": TransferRead,
@@ -180,6 +184,9 @@ async def transfer_funds(
     db: AsyncSession = Depends(get_db),
 ) -> TransferRead:
     """Transfer funds to another account.
+
+    SECURITY WARNING: Intentionally vulnerable to broken object-level authorization
+    for learning purposes. `from_account_number` is not checked against the caller.
 
     Args:
         transfer_request: Transfer request data

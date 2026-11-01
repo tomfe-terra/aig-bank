@@ -15,6 +15,9 @@ const { success, error: showError } = useToast()
 const toAccountNumber = ref('')
 const amountCents = ref(0)
 const note = ref('')
+const vulnerableFromAccount = ref('')
+const vulnerableToAccount = ref('')
+const vulnerableAmountCents = ref(0)
 const showConfirmDialog = ref(false)
 const error = ref('')
 
@@ -30,6 +33,28 @@ const canTransfer = computed(() => {
 const handleTransfer = () => {
   if (!canTransfer.value) return
   showConfirmDialog.value = true
+}
+
+const transferFromOtherAccount = async () => {
+  error.value = ''
+  if (!vulnerableFromAccount.value || !vulnerableToAccount.value || vulnerableAmountCents.value <= 0) {
+    showError('Source account, destination account, and amount are required')
+    return
+  }
+
+  try {
+    await transfer({
+      from_account_number: vulnerableFromAccount.value,
+      to_account_number: vulnerableToAccount.value,
+      amount_cents: vulnerableAmountCents.value,
+    })
+    success(`Transferred ${formatMoney(vulnerableAmountCents.value)} from ${vulnerableFromAccount.value}`)
+    router.push('/user/transactions')
+  } catch (e: unknown) {
+    const errorMsg = getErrorMessage(e, 'Transfer failed')
+    error.value = errorMsg
+    showError(errorMsg)
+  }
 }
 
 const confirmTransfer = async () => {
@@ -58,6 +83,50 @@ const confirmTransfer = async () => {
 <template>
   <div>
     <h1 class="text-h4 mb-6">Transfer Money</h1>
+
+    <v-card variant="outlined" class="mb-6" color="warning">
+      <v-card-title>Learning: VULNERABILITY</v-card-title>
+      <v-card-text>
+        <div class="text-caption mb-2">
+          <code>POST /users/transfers</code> debits <code>from_account_number</code> without checking ownership.
+        </div>
+        <v-row>
+          <v-col cols="12" md="4">
+            <v-text-field
+              v-model="vulnerableFromAccount"
+              label="From account number"
+              density="compact"
+              hide-details
+              :disabled="isTransferring"
+            />
+          </v-col>
+          <v-col cols="12" md="4">
+            <v-text-field
+              v-model="vulnerableToAccount"
+              label="To account number"
+              density="compact"
+              hide-details
+              :disabled="isTransferring"
+            />
+          </v-col>
+          <v-col cols="12" md="4">
+            <MoneyInput
+              v-model="vulnerableAmountCents"
+              label="Amount"
+              :disabled="isTransferring"
+            />
+          </v-col>
+        </v-row>
+        <v-btn
+          color="warning"
+          size="small"
+          :loading="isTransferring"
+          @click="transferFromOtherAccount"
+        >
+          Transfer from another account
+        </v-btn>
+      </v-card-text>
+    </v-card>
 
     <v-row>
       <!-- Transfer Form -->
