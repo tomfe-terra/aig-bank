@@ -69,12 +69,12 @@ async def list_my_cards(
     "/cards/{card_id}/reveal",
     response_model=CardReveal,
     status_code=status.HTTP_200_OK,
-    summary="Reveal Card PAN",
+    summary="Reveal Card PAN (Intentionally Vulnerable)",
     description="""Reveal the full Primary Account Number (PAN) for a specific credit card.
 
-**Security Note:** This endpoint returns sensitive card information and should be used
-sparingly. The PAN is only revealed to the card owner and proper authorization is required.
-This endpoint is rate-limited and should not be used for logging or caching purposes.""",
+**SECURITY WARNING**: This endpoint is intentionally VULNERABLE to IDOR for learning purposes.
+Any authenticated user can reveal any card by supplying its card ID. Ownership is not checked.
+""",
     responses={
         status.HTTP_200_OK: {
             "description": "Success",
@@ -122,6 +122,9 @@ async def reveal_card_pan(
     db: AsyncSession = Depends(get_db),
 ) -> CardReveal:
     """Reveal the full PAN for a specific card.
+
+    SECURITY WARNING: Intentionally vulnerable to IDOR for learning purposes.
+    The card ID is not checked against the authenticated user.
 
     Args:
         card_id: Card ID to reveal

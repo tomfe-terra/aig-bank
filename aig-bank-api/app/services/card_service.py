@@ -94,14 +94,16 @@ class CardService(BaseService):
         return CardRead.model_validate(card, from_attributes=True)
 
     async def reveal_pan(self, card_id: str, user_id: str) -> CardReveal:
-        """Reveal the full card details including PAN and CVV (single-use, should be rate limited)."""
+        """Reveal the full card details including PAN and CVV.
+
+        SECURITY WARNING: Intentionally vulnerable to IDOR for learning purposes.
+        Any authenticated caller can reveal any card by its ID.
+        """
         card = await self.repository.get_by_id(card_id)
         if not card:
             raise ResourceNotFoundError("CreditCard", f"Credit card {card_id} not found")
 
-        account = await self.account_repository.get_by_id(card.account_id)
-        if not account or account.user_id != user_id:
-            raise ResourceNotFoundError("CreditCard", f"Credit card {card_id} not found")
+        # SECURITY WARNING: Ownership is intentionally not checked for learning purposes.
 
         logger.info(
             f"Card details reveal requested for card {card_id} by user {user_id}",
