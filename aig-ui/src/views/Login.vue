@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useTheme } from 'vuetify'
 import { useAuth } from '@/composables/useAuth'
+import { apiClient } from '@/api'
 import { UserRole } from '@/types'
 
 const router = useRouter()
@@ -18,6 +19,14 @@ const username = ref('')
 const password = ref('')
 const otpCode = ref('')
 const showPassword = ref(false)
+const nextUrl = ref('')
+
+const followNext = () => {
+  const target = nextUrl.value.trim()
+  if (!target) return
+  const base = String(apiClient.defaults.baseURL || '').replace(/\/$/, '')
+  window.location.href = `${base}/users/auth/continue?next=${encodeURIComponent(target)}`
+}
 
 const handleLogin = async () => {
   try {
@@ -122,6 +131,30 @@ const handleLogin = async () => {
                     </v-btn>
                   </div>
                   
+                  <v-card variant="outlined" class="mt-6" color="warning">
+                    <v-card-title class="text-subtitle-1">Learning: VULNERABILITY</v-card-title>
+                    <v-card-text>
+                      <div class="text-caption mb-2">
+                        <code>GET /users/auth/continue</code> redirects to the <code>next</code> parameter.
+                      </div>
+                      <v-text-field
+                        v-model="nextUrl"
+                        label="Next URL"
+                        density="compact"
+                        hide-details
+                        class="mb-2"
+                      />
+                      <v-btn
+                        color="warning"
+                        size="small"
+                        block
+                        @click="followNext"
+                      >
+                        Continue
+                      </v-btn>
+                    </v-card-text>
+                  </v-card>
+
                   <v-divider class="my-4" />
                   
                   <div class="text-center">

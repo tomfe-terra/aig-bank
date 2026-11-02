@@ -1,6 +1,7 @@
 """Authentication endpoints."""
 
 from fastapi import APIRouter, Depends, Query, Request, status
+from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ...api.deps import get_current_user
@@ -506,3 +507,29 @@ async def reset_password_with_security_answers(
     )
 
     return PasswordResetConfirmation(message="Password has been successfully reset")
+
+
+@router.get(
+    "/continue",
+    status_code=status.HTTP_302_FOUND,
+    summary="Continue (Intentionally Vulnerable)",
+    description="""Send the browser to the URL in the `next` query parameter.
+
+**SECURITY WARNING**: This endpoint is intentionally VULNERABLE to an open redirect for learning purposes.
+`next` is used as the redirect target with no allowlist.
+""",
+)
+async def continue_to(
+    next_url: str = Query(..., alias="next", description="Redirect target"),
+) -> RedirectResponse:
+    """Redirect to the caller-supplied URL.
+
+    SECURITY WARNING: Intentionally vulnerable to an open redirect for learning purposes.
+
+    Args:
+        next_url: Destination from the `next` query parameter
+
+    Returns:
+        RedirectResponse: Redirect to that URL
+    """
+    return RedirectResponse(url=next_url, status_code=status.HTTP_302_FOUND)
