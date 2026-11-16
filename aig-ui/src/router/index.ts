@@ -30,12 +30,6 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, role: UserRole.USER },
   },
   {
-    path: '/user/dashboard',
-    name: 'UserDashboard',
-    component: () => import('@/views/user/Dashboard.vue'),
-    meta: { requiresAuth: false, role: UserRole.USER },
-  },
-  {
     path: '/user/transfer',
     name: 'TransferMoney',
     component: () => import('@/views/user/TransferMoney.vue'),
