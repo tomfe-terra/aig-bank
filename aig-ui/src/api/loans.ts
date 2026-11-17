@@ -3,7 +3,7 @@ import type { LoanRead, LoanRequestCreate } from '@/types'
 
 export const loansApi = {
   async getLoans(): Promise<LoanRead[]> {
-    const response = await apiClient.get<LoanRead[]>('/users/loans')
+    const response = await apiClient.get<LoanRead[]>('/users/my-loans')
     return response.data
   },
 
