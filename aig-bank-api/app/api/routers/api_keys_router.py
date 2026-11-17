@@ -90,65 +90,6 @@ async def create_api_key(
     )
 
 
-@router.get(
-    "/api-keys",
-    response_model=APIKeyList,
-    summary="List API Keys",
-    description="""List API keys for the authenticated user.
-
-By default, only active API keys are returned. Set `include_revoked=true` to also include revoked keys.""",
-    responses={
-        status.HTTP_200_OK: {
-            "model": APIKeyList,
-            "description": "Success",
-        },
-        status.HTTP_401_UNAUTHORIZED: {
-            "description": "Unauthorized",
-            "content": {
-                "application/json": {
-                    "examples": {
-                        "authentication_required": {
-                            "summary": "Authentication required",
-                            "value": {
-                                "error": ErrorCode.AUTHENTICATION_REQUIRED.value,
-                                "details": "Authentication is required to access this resource",
-                                "request_id": "938304120f4492de",
-                            },
-                        },
-                    },
-                },
-            },
-        },
-    },
-)
-async def list_api_keys(
-    include_revoked: bool | None = False,
-    current_user: dict = Depends(get_current_user_insecure),
-    db: AsyncSession = Depends(get_db),
-) -> APIKeyList:
-    """List API keys for the current user.
-
-    Args:
-        include_revoked: Whether to include revoked (inactive) keys in the response
-        current_user: Authenticated user context
-        db: Database session
-
-    Returns:
-        APIKeyList: List of API keys with total count
-    """
-    api_key_service = APIKeyService(db)
-
-    api_keys, count = await api_key_service.list_api_keys_for_user(
-        user_id=current_user["user_id"],
-        active_only=not include_revoked,
-    )
-
-    return APIKeyList(
-        api_keys=api_keys,
-        total=count,
-    )
-
-
 @router.patch(
     "/api-keys/{api_key_id}",
     response_model=APIKeyRead,
