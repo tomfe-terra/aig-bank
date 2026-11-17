@@ -110,7 +110,7 @@ async def request_loan(
 
 
 @router.get(
-    "/loan-list",
+    "/my-loans",
     response_model=list[LoanRead],
     status_code=status.HTTP_200_OK,
     summary="List My Loans",
